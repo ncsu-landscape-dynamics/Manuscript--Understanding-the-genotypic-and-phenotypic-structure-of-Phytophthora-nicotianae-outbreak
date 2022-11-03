@@ -8,16 +8,6 @@
 // 'Guilford'
 // 'Wake'
 
-// 'Halifax'
-// 'Northampton'
-
-// 'Suffolk'
-
-// 'Franklin'
-// 'Lancaster'
-
-// 'Dorchester'
-
 //// Study areaas
 var camdo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Camden')).geometry();
 var pasdo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Pasquotank')).geometry();
