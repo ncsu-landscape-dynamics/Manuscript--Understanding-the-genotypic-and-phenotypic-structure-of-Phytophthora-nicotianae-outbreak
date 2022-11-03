@@ -1,0 +1,99 @@
+library(terra)
+library(tidyverse)
+library(lubridate)
+
+l1 <- list.files(...local storage of exports from GEE, pattern = "camd", full.names=T)
+l2 <- list.files(...local storage of exports from GEE, pattern = "Pasq", full.names=T)
+#P_inf = Phytophthora infestans
+#P_nic = Phytophthora nicotianae
+
+simplrastpr <- function(x) {
+  rasd1 <- rast(x)
+  
+  datstr1 <- seq(as.Date(paste0("20",str_sub(names(rasd1)[1],3,4),"-04-01")), length.out=nlyr(rasd1)/2, by=1)
+  
+  nl1 <- nlyr(rasd1)
+  
+  # These next few lines need to be commented depending on whether reading
+  # P_inf or P_nic
+  # For P_inf use
+  #infly <- rasd1[[seq(1,nl1,by=2)]]
+  #time(nicfly) <- datstr1
+  #return(nicfly)
+  
+  # For P_nic use
+  nicfly <- rasd1[[seq(2,nl1, by=2)]]
+  time(nicfly) <- datstr1
+  return(nicfly)
+}
+
+# 18-22 C Range with MAX T
+camdtmx <- lapply(l1, simplrastpr)
+camdtmxnic <- lapply(l1, simplrastpr)
+
+# 18 - 22 C Range with MAX T
+pasqtmx <- lapply(l2, simplrastpr)
+pasqtmxnic <- lapply(l2, simplrastpr)
+
+rsva1 <- function(x) {
+  rna1 = ifelse(str_sub(sources(x),48,51) == "Pasq", "Pasquotank_NC", "Camden_NC")
+  yr1 = year(time(x)[1])
+  step1 = app(x, sum)
+  meantot = global(step1, mean)
+  sdtot = global(step1, sd)
+  df1 = data.frame(County=rna1, Year=yr1, Tot=max(values(step1)), avg=meantot, sd1 = sdtot)
+  return(df1)
+}
+
+cmdxv <- do.call(rbind, lapply(camdtmx, rsva1))
+pasxv <- do.call(rbind, lapply(pasqtmx, rsva1))
+cmdxvn <- do.call(rbind, lapply(camdtmxnic, rsva1))
+pasxvn <- do.call(rbind, lapply(pasqtmxnic, rsva1))
+
+cmdxv$Pathogen <- "P_infestans"
+pasxv$Pathogen <- "P_infestans"
+cmdxvn$Pathogen <- "P_nicotianae"
+pasxvn$Pathogen <- "P_nicotianae"
+
+cx1 <- rbind(cmdxv, cmdxvn)
+px1 <- rbind(pasxv, pasxvn)
+
+cx2 <- cx1 %>% group_by(Year, Pathogen) %>% mutate(ymin=Tot-sd, ymax=Tot+sd)
+px2 <- px1 %>% group_by(Year, Pathogen) %>% mutate(ymin=Tot-sd, ymax=Tot+sd)
+
+
+
+### This will create the barplots in the publication
+
+plotscalex <- c(2012, 2013,2014,2015,2016,2017,2018,2019,2020, 2021)
+
+ggplot(cx2, aes(x=Year, Tot, fill=Pathogen)) + 
+  labs(title = "Number of Days in April-August with Max. Temp. in\nRanges for Two Pathogens in Camden, N.C.", 
+       #caption="P. infestans range: 18 - 22 C; P. nicotianae range: 25 - 35 C; \"a\" Year with\nmost N.C. P. infestans reports (n=16); \"aa\" Year with most N.C. P. nicotianae reports (n=23)",
+       y="Number of Days", color="Pathogen", x="Year" ) + geom_col( position = "dodge") +
+  geom_text(aes(x=2011.77, y=10), size=7, label="a") +
+  geom_text(aes(x=2021.2, y=10), size=6, label="aa") +
+  geom_errorbar(aes(ymin=ymin, ymax=ymax), position="dodge") + 
+  theme(axis.text.x = element_text(face="bold"), #axis.title.x = element_text(size=14), 
+        axis.text.y = element_text(face="bold"), #, axis.title.y = element_text(size=14)) +
+        title = element_text(size=12)) +
+  scale_fill_discrete(labels = c(expression(italic("P. infestans")), 
+                                 expression(italic("P. nicotianae")))) +
+  scale_x_continuous("Year", labels = plotscalex, breaks=plotscalex)
+
+
+ggplot(px2, aes(x=Year, Tot, fill=Pathogen)) + 
+  labs(title = "Number of Days in April-August with Max. Temp. in\nRanges for Two Pathogens in Pasquotank, N.C.", 
+       #caption="P. infestans range: 18 - 22 C; P. nicotianae range: 25 - 35 C; \"a\" Year with\nmost N.C. P. infestans reports (n=16); \"aa\" Year with most N.C. P. nicotianae reports (n=23)",
+       y="Number of Days", color="Pathogen", x="Year" ) + geom_col( position = "dodge") +
+  geom_text(aes(x=2011.77, y=10), size=8, label="a") +
+  geom_text(aes(x=2021.2, y=10), size=6, label="aa") +
+  geom_errorbar(aes(ymin=ymin, ymax=ymax), position="dodge") +
+  theme(axis.text.x = element_text(face="bold"), #axis.title.x = element_text(size=14), 
+        axis.text.y = element_text(face="bold"), #, axis.title.y = element_text(size=14)) +
+        title = element_text(size=12)) +
+  scale_fill_discrete(labels = c(expression(italic("P. infestans")), 
+                                 expression(italic("P. nicotianae")))) +
+  scale_x_continuous("Year", labels = plotscalex, breaks=plotscalex)
+
+######
