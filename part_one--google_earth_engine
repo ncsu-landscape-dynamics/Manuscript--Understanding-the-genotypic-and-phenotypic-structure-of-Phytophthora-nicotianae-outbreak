@@ -1,0 +1,1251 @@
+// John Polo
+// Calculate mean of temperature for specified counties and date ranges.
+
+// Counties:
+// 'Camden'
+// 'Pasquotank'
+// 'Rutherford'
+// 'Guilford'
+// 'Wake'
+
+// 'Halifax'
+// 'Northampton'
+
+// 'Suffolk'
+
+// 'Franklin'
+// 'Lancaster'
+
+// 'Dorchester'
+
+//// Study areaas
+var camdo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Camden')).geometry();
+var pasdo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Pasquotank')).geometry();
+var rudo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Rutherford')).geometry();
+var gudo = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Guilford')).geometry();
+var wado = ee.FeatureCollection("TIGER/2016/Counties").filter(ee.Filter.eq('NAME', 'Wake')).geometry();
+
+var nc1 = ee.FeatureCollection("TIGER/2018/States").filter(ee.Filter.eq('NAME', 'North Carolina'));
+
+var loc1 = camdo.intersection(nc1);
+
+var loc2 = pasdo.intersection(nc1);
+
+var loc3 = rudo.intersection(nc1);
+
+var loc4 = gudo.intersection(nc1);
+
+var loc5 = wado.intersection(nc1);
+
+var sbands = ['tmax', 'tmin', 'vp'];
+
+//////// After setting up the geometries, the workflow is generally
+//////// to use the geo. in a mapped clip() of an ImageCollection (I.C.). At the same 
+//////// time, select the appropriate bands. Then use the addmeans()
+//////// fxn to map a new average temp. band to I.C. Then it might
+//////// be necessary to use .mean() to get a mean of the bands in question.
+//////// After that, filter [.gt() or .lt()]. Then a reducer. That gets
+//////// a binary mask. Use that in over_Threshold and then use getStats()
+//////// There are exports for tables and rasters. 
+
+// Created a different collection for each geographic region to keep them separate, 
+// otherwise a contiguous raster is created from N.Y. to FL.
+
+// Calculate mean temp. from max. and min.
+function addmean(image) {
+  var tmean = ee.Image().expression(
+    '(tmax + tmin) / 2', {
+    'tmin' : image.select('tmin'),
+    'tmax' : image.select('tmax'),
+  });
+  tmean = tmean.rename('tmean');
+  return image.addBands(tmean);
+}
+
+// To get one value that represents the mean through the years
+// as well as across the region:
+// 1) First get the mean of each pixel for each band
+// 2) Then use reduce with mean
+
+//////////////////////////////
+//////////////////////////////
+// Using mean from first five years as a threshold, create binary
+// rasters that have days with MAX temp. over the threshold. 
+// Exports the binary rasters where I do more processing in R
+// to determine how many days have MAX T over threshold.
+
+// Calculate mean for selected month across multiple years like this:
+var daymetmy = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2016-09-01').filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+// Broke out the years to avoid having to separate them later
+//////// 2012
+var daymet1 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2012-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+var daymet2 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2012-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet3 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2012-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet4 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2012-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet5 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2012-04-01','2012-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+
+//////// 2013
+var daymet12 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2013-04-01','2013-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+//print('87',daymet1);
+
+var daymet13 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2013-04-01','2013-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet14 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2013-04-01','2013-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet15 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2013-04-01','2013-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet16 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2013-04-01','2013-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2014
+var daymet19 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2014-04-01','2014-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+//print('87',daymet1);
+
+var daymet20 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2014-04-01','2014-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet21 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2014-04-01','2014-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet22 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2014-04-01','2014-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet23 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2014-04-01','2014-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2015
+var daymet26 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2015-04-01','2015-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+//print('87',daymet1);
+
+var daymet27 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2015-04-01','2015-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet28 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2015-04-01','2015-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet29 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2015-04-01','2015-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet30 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2015-04-01','2015-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2016
+var daymet33 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2016-04-01','2016-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+//print('87',daymet1);
+
+var daymet34 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2016-04-01','2016-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet35 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2016-04-01','2016-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet36 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2016-04-01','2016-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet37 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2016-04-01','2016-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2017
+var daymet40 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2017-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+var daymet41 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2017-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet42 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2017-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet43 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2017-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet44 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2017-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2018
+var daymet47 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2018-04-01','2018-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+var daymet48 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2018-04-01','2018-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet49 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2018-04-01','2018-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet50 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2018-04-01','2018-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet51 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2018-04-01','2018-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2019
+var daymet54 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2019-04-01','2019-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+var daymet55 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2019-04-01','2019-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet56 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2019-04-01','2019-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet57 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2019-04-01','2019-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet58 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2019-04-01','2019-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2020
+var daymet61 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2020-04-01','2020-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+var daymet62 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2020-04-01','2020-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet63 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2020-04-01','2020-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet64 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2020-04-01','2020-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet65 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2020-04-01','2020-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+//////2021
+var daymet68 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2021-04-01','2021-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+//print('87',daymet1);
+
+var daymet69 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2021-04-01','2021-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc2)});
+
+var daymet70 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2021-04-01','2021-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc3)});
+
+var daymet71 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2021-04-01','2021-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc4)});
+
+var daymet72 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2021-04-01','2021-09-01')//.filter(ee.Filter.calendarRange(7, 7,'month'))
+.select(sbands).map(function(im){return im.clip(loc5)});
+
+
+var daymet1 = daymet1.map(addmean);
+
+var daymet2 = daymet2.map(addmean);
+
+var daymet3 = daymet3.map(addmean);
+
+var daymet4 = daymet4.map(addmean);
+
+var daymet5 = daymet5.map(addmean);
+
+var daymet12 = daymet12.map(addmean);
+
+var daymet13 = daymet13.map(addmean);
+
+var daymet19 = daymet19.map(addmean);
+
+var daymet20 = daymet20.map(addmean);
+
+var daymet21 = daymet21.map(addmean);
+
+var daymet22 = daymet22.map(addmean);
+
+var daymet23 = daymet23.map(addmean);
+
+var daymet26 = daymet26.map(addmean);
+
+var daymet27 = daymet27.map(addmean);
+
+var daymet28 = daymet28.map(addmean);
+
+var daymet29 = daymet29.map(addmean);
+
+var daymet30 = daymet30.map(addmean);
+
+var daymet33 = daymet33.map(addmean);
+
+var daymet34 = daymet34.map(addmean);
+
+var daymet35 = daymet35.map(addmean);
+
+var daymet36 = daymet36.map(addmean);
+
+var daymet37 = daymet37.map(addmean);
+
+var daymet40 = daymet41.map(addmean);
+
+var daymet41 = daymet41.map(addmean);
+
+var daymet42 = daymet42.map(addmean);
+
+var daymet43 = daymet43.map(addmean);
+
+var daymet44 = daymet44.map(addmean);
+
+var daymet47 = daymet47.map(addmean);
+
+var daymet48 = daymet48.map(addmean);
+
+var daymet49 = daymet49.map(addmean);
+
+var daymet50 = daymet50.map(addmean);
+
+var daymet51 = daymet51.map(addmean);
+
+var daymet54 = daymet54.map(addmean);
+
+var daymet55 = daymet55.map(addmean);
+
+var daymet56 = daymet56.map(addmean);
+
+var daymet57 = daymet57.map(addmean);
+
+var daymet58 = daymet58.map(addmean);
+
+var daymet61 = daymet61.map(addmean);
+
+var daymet62 = daymet62.map(addmean);
+
+var daymet63 = daymet63.map(addmean);
+
+var daymet64 = daymet64.map(addmean);
+
+var daymet65 = daymet65.map(addmean);
+
+var daymet68 = daymet68.map(addmean);
+
+var daymet69 = daymet69.map(addmean);
+
+var daymet70 = daymet70.map(addmean);
+
+var daymet71 = daymet71.map(addmean);
+
+var daymet72 = daymet72.map(addmean);
+
+// Filter for a range of temperatures for each image
+var p_day = function(image){
+  var tx1 = image.select('tmax');
+  var tx2 = tx1.updateMask(tx1.gt(10))
+  .updateMask(tx1.lt(26))
+  .gt(10).selfMask().rename('inf_range');
+  var tx3 = tx1.updateMask(tx1.gt(25))
+  .updateMask(tx1.lt(35))
+  .gt(25).selfMask().rename('nic_range');
+  return image.addBands([tx2,tx3]);
+};
+
+var daymet1  = daymet1.map(p_day);
+
+var daymet2  = daymet2.map(p_day);
+
+var daymet3  = daymet3.map(p_day);
+
+var daymet4  = daymet4.map(p_day);
+
+var daymet5  = daymet5.map(p_day);
+
+var daymet12  = daymet12.map(p_day);
+
+var daymet13  = daymet13.map(p_day);
+
+var daymet14  = daymet14.map(p_day);
+
+var daymet15  = daymet15.map(p_day);
+
+var daymet16  = daymet16.map(p_day);
+
+var daymet19  = daymet19.map(p_day);
+
+var daymet20 = daymet20.map(p_day);
+
+var daymet21 = daymet21.map(p_day);
+
+var daymet22 = daymet22.map(p_day);
+
+var daymet23 = daymet23.map(p_day);
+
+var daymet26 = daymet26.map(p_day);
+
+var daymet27 = daymet27.map(p_day);
+
+var daymet28 = daymet28.map(p_day);
+
+var daymet29 = daymet29.map(p_day);
+
+var daymet30 = daymet30.map(p_day);
+
+var daymet33 = daymet33.map(p_day);
+
+var daymet34 = daymet34.map(p_day);
+
+var daymet35 = daymet35.map(p_day);
+
+var daymet36 = daymet36.map(p_day);
+
+var daymet37 = daymet37.map(p_day);
+
+var daymet40 = daymet40.map(p_day);
+
+var daymet41 = daymet41.map(p_day);
+
+var daymet42 = daymet42.map(p_day);
+
+var daymet43 = daymet43.map(p_day);
+
+var daymet44 = daymet44.map(p_day);
+
+var daymet47 = daymet47.map(p_day);
+
+var daymet48 = daymet48.map(p_day);
+
+var daymet49 = daymet49.map(p_day);
+
+var daymet50 = daymet50.map(p_day);
+
+var daymet51 = daymet51.map(p_day);
+
+var daymet54 = daymet54.map(p_day);
+
+var daymet55 = daymet55.map(p_day);
+
+var daymet56 = daymet56.map(p_day);
+
+var daymet57 = daymet57.map(p_day);
+
+var daymet58 = daymet58.map(p_day);
+
+var daymet61 = daymet61.map(p_day);
+
+var daymet62 = daymet62.map(p_day);
+
+var daymet63 = daymet63.map(p_day);
+
+var daymet64 = daymet64.map(p_day);
+
+var daymet65 = daymet65.map(p_day);
+
+var daymet68 = daymet68.map(p_day);
+
+var daymet69 = daymet69.map(p_day);
+
+var daymet70 = daymet70.map(p_day);
+
+var daymet71 = daymet71.map(p_day);
+
+var daymet72 = daymet72.map(p_day);
+
+//// Use this for just getting a value. Need a raster? Scroll more.
+// Then reduce with mean or count, etc.
+var testmm1 = testm1.reduceRegion({
+  reducer: ee.Reducer.count,
+  geometry: loc1,
+  scale: 30,
+  maxPixels: 1e9
+});
+//The result is a Dictionary.  Print it.
+var testmm1 = testmm1.combine({loc: 'camden'});
+Export.table.toDrive({ collection: ee.FeatureCollection([ee.Feature(null, testmm1)]),
+  descriptoion: 'suff 2019', //'camden_t_count_July_12',
+  folder: 'daymet_txn_hourly', 
+});
+
+var testmm2 = testm2.reduceRegion({
+  reducer: ee.Reducer.mean(),
+  geometry: loc2,
+  scale: 30,
+  maxPixels: 1e9
+});
+var testmm2 = testmm2.combine({loc: 'pasq'});
+Export.table.toDrive({ collection: ee.FeatureCollection([ee.Feature(null, testmm2)]),
+  description: 'pasqu_t_count_July_12',
+  folder: 'daymet_txn_hourly', 
+});
+
+var testmm3 = testm3.reduceRegion({
+  reducer: ee.Reducer.mean(),
+  geometry: loc3,
+  scale: 30,
+  maxPixels: 1e9
+});
+var testmm3 = testmm3.combine({loc: 'ruth'});
+Export.table.toDrive({ collection: ee.FeatureCollection([ee.Feature(null, testmm3)]),
+  description: 'ruth_t_count_July_12',
+  folder: 'daymet_txn_hourly', 
+});
+var testmm4 = testm4.reduceRegion({
+  reducer: ee.Reducer.mean(),
+  geometry: loc4,
+  scale: 30,
+  maxPixels: 1e9
+});
+//print('meandict4 Guilf', testmm4);
+var testmm4 = testmm4.combine({loc: 'guil'});
+Export.table.toDrive({ collection: ee.FeatureCollection([ee.Feature(null, testmm4)]),
+  description: 'guilf_t_count_July_12',
+  folder: 'daymet_txn_hourly', 
+});
+
+var testmm5 = testm5.reduceRegion({
+  reducer: ee.Reducer.mean(),
+  geometry: loc5,
+  scale: 30,
+  maxPixels: 1e9
+});
+//print('meandict5 Wake', testmm5);
+var testmm5 = testmm5.combine({loc: 'wake'});
+Export.table.toDrive({ collection: ee.FeatureCollection([ee.Feature(null, testmm5)]),
+  description: 'wake_t_count_July_12',
+  folder: 'daymet_txn_hourly', 
+});
+
+//// This is for getting means of years 2017 - 2021
+var daymetB1 = ee.ImageCollection("NASA/ORNL/DAYMET_V4")
+.filterDate('2017-04-01','2021-07-01').filter(ee.Filter.calendarRange(4, 6,'month'))
+.select(sbands).map(function(im){return im.clip(loc1)});
+
+// Create a binary raster.This will make counts of days easier. Further processing in R.
+var daysOverThreshold = function(image) {
+  var maxt = image.select('tmax');
+  var daynm1 = ee.String('over_T_');
+  var daynm = daynm1.cat(ee.Date(image.get('system:time_start')).format("YYYY-MM-dd"));
+  var daym = maxt.gt(ee.Number(testmm1.get('tmax'))).rename(daynm);
+  return image.addBands(daym);
+};
+
+// Reduce for a single value again
+var getStats = function(img) {
+            var image = ee.Image(img);
+            var inm1 = ee.String('over_T');
+            var inm2 = inm1.cat(ee.Date(image.get('system:time_start')).format("YYYY-MM-dd"));
+            var reducers = ee.Reducer.count();
+            var stats = image.reduceRegion({
+                reducer: reducers,
+                geometry: loc1,
+                bestEffort: true,
+                });
+            return image.set(stats).rename(inm2);
+}
+
+// Process the data for later years to get the binary rasters that provide days over threshold:
+// This will make counts of days easier. Further processing in R.
+// var dotCa = daymetB1.map(daysOverThreshold);
+// var dotCa = dotCa.select('over_T.*');
+// var dotCa = dotCa.map(getStats);
+// var dotoutCa = dotCa.toBands();
+// Export.image.toDrive({ image: dotoutCa.toInt32(), 
+//   description: 'camden_count', 
+//   folder: 'daymet_txn_hourly', 
+//   region: loc1, 
+//   scale: 30, 
+//   maxPixels: 1e13 
+// }); 
+// Repeat as need for year/location
+
+var getStats = function(img) {
+            var image = ee.Image(img);
+            //var inm1 = ee.String('over_T');
+            //var inm2 = inm1.cat(ee.Date(image.get('system:time_start')).format("YYYY-MM-dd"));
+            var reducers = ee.Reducer.max();
+            var stats = image.reduceRegion({
+                reducer: reducers,
+                geometry: loc1,
+                bestEffort: true,
+                });
+            return image.set(stats);//.rename(inm2);
+};
+
+var dotCa = daymet1.map(p_day);
+var dotCa = dotCa.select(['inf_range','nic_range']);
+var dotCa = dotCa.map(getStats);
+var dotCa = dotCa.toBands();
+Export.image.toDrive({ image: dotCa.toInt32(), 
+  description: 'camden11_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP = daymet2.map(p_day);
+var dotP = dotP.select(['inf_range','nic_range']);
+var dotP = dotP.map(getStats);
+var dotoutP = dotP.toBands();
+Export.image.toDrive({ image: dotoutP.toInt32(),
+  description: 'Pasq16_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR = daymet3.map(p_day);
+var dotR = dotR.select(['inf_range','nic_range']);
+var dotR = dotR.map(getStats);
+var dotoutR = dotR.toBands();
+Export.image.toDrive({ image: dotoutR.toInt32(),
+  description: 'Ruther12_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG = daymet4.map(p_day);
+var dotG = dotG.select(['inf_range','nic_range']);
+var dotG = dotG.map(getStats);
+var dotoutG = dotG.toBands();
+Export.image.toDrive({ image: dotoutG.toInt32(),
+  description: 'Guil12_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW = daymet5.map(p_day);
+var dotW = dotW.select(['inf_range','nic_range']);
+var dotW = dotW.map(getStats);
+var dotoutW = dotW.toBands();
+Export.image.toDrive({ image: dotoutW.toInt32(),
+  description: 'Wake12_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+// //2013
+var dotCa3 = daymet12.map(p_day);
+var dotCa3 = dotCa3.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa3 = dotCa3.map(getStats);
+var dotCa3 = dotCa3.toBands();
+print('884 dotc', dotCa3);
+Export.image.toDrive({ image: dotCa3.toInt32(), 
+  description: 'camden16_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP3 = daymet13.map(p_day);
+var dotP3 = dotP3.select(['inf_range','nic_range']);
+var dotP3 = dotP3.map(getStats);
+var dotoutP3 = dotP3.toBands();
+Export.image.toDrive({ image: dotoutP3.toInt32(),
+  description: 'Pasq17_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR3 = daymet14.map(p_day);
+var dotR3 = dotR3.select(['inf_range','nic_range']);
+var dotR3 = dotR3.map(getStats);
+var dotoutR3 = dotR3.toBands();
+Export.image.toDrive({ image: dotoutR3.toInt32(),
+  description: 'Ruther18_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG3 = daymet15.map(p_day);
+var dotG3 = dotG3.select(['inf_range','nic_range']);
+var dotG3 = dotG3.map(getStats);
+var dotoutG3 = dotG3.toBands();
+Export.image.toDrive({ image: dotoutG3.toInt32(),
+  description: 'Guil13_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW3 = daymet16.map(p_day);
+var dotW3 = dotW3.select(['inf_range','nic_range']);
+var dotW3 = dotW3.map(getStats);
+var dotoutW3 = dotW3.toBands();
+Export.image.toDrive({ image: dotoutW3.toInt32(),
+  description: 'Wake13_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2014
+var dotCa4 = daymet19.map(p_day);
+var dotCa4 = dotCa4.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa4 = dotCa4.map(getStats);
+var dotCa4 = dotCa4.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa4.toInt32(), 
+  description: 'camden14_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP4 = daymet20.map(p_day);
+var dotP4 = dotP4.select(['inf_range','nic_range']);
+var dotP4 = dotP4.map(getStats);
+var dotoutP4 = dotP4.toBands();
+Export.image.toDrive({ image: dotoutP4.toInt32(),
+  description: 'Pasq14_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR4 = daymet21.map(p_day);
+var dotR4 = dotR4.select(['inf_range','nic_range']);
+var dotR4 = dotR4.map(getStats);
+var dotoutR4 = dotR4.toBands();
+Export.image.toDrive({ image: dotoutR4.toInt32(),
+  description: 'Ruther14_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG4 = daymet22.map(p_day);
+var dotG4 = dotG4.select(['inf_range','nic_range']);
+var dotG4 = dotG4.map(getStats);
+var dotoutG4 = dotG4.toBands();
+Export.image.toDrive({ image: dotoutG4.toInt32(),
+  description: 'Guil14_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW4 = daymet23.map(p_day);
+var dotW4 = dotW4.select(['inf_range','nic_range']);
+var dotW4 = dotW4.map(getStats);
+var dotoutW4 = dotW4.toBands();
+Export.image.toDrive({ image: dotoutW4.toInt32(),
+  description: 'Wake14_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2015
+var dotCa5 = daymet26.map(p_day);
+var dotCa5 = dotCa5.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa5 = dotCa5.map(getStats);
+var dotCa5 = dotCa5.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa5.toInt32(), 
+  description: 'camden15_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP5 = daymet27.map(p_day);
+var dotP5 = dotP5.select(['inf_range','nic_range']);
+var dotP5 = dotP5.map(getStats);
+var dotoutP5 = dotP5.toBands();
+Export.image.toDrive({ image: dotoutP5.toInt32(),
+  description: 'Pasq15_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR5 = daymet28.map(p_day);
+var dotR5 = dotR5.select(['inf_range','nic_range']);
+var dotR5 = dotR5.map(getStats);
+var dotoutR5 = dotR5.toBands();
+Export.image.toDrive({ image: dotoutR5.toInt32(),
+  description: 'Ruther15_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG5 = daymet29.map(p_day);
+var dotG5 = dotG5.select(['inf_range','nic_range']);
+var dotG5 = dotG5.map(getStats);
+var dotoutG5 = dotG5.toBands();
+Export.image.toDrive({ image: dotoutG5.toInt32(),
+  description: 'Guil15_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW5 = daymet30.map(p_day);
+var dotW5 = dotW5.select(['inf_range','nic_range']);
+var dotW5 = dotW5.map(getStats);
+var dotoutW5 = dotW5.toBands();
+Export.image.toDrive({ image: dotoutW5.toInt32(),
+  description: 'Wake15_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2016
+var dotCa6 = daymet33.map(p_day);
+var dotCa6 = dotCa6.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa6 = dotCa6.map(getStats);
+var dotCa6 = dotCa6.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa6.toInt32(), 
+  description: 'camden16_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP6 = daymet34.map(p_day);
+var dotP6 = dotP6.select(['inf_range','nic_range']);
+var dotP6 = dotP6.map(getStats);
+var dotoutP6 = dotP6.toBands();
+Export.image.toDrive({ image: dotoutP6.toInt32(),
+  description: 'Pasq16_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR6 = daymet35.map(p_day);
+var dotR6 = dotR6.select(['inf_range','nic_range']);
+var dotR6 = dotR6.map(getStats);
+var dotoutR6 = dotR6.toBands();
+Export.image.toDrive({ image: dotoutR6.toInt32(),
+  description: 'Ruther16_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG6 = daymet36.map(p_day);
+var dotG6 = dotG6.select(['inf_range','nic_range']);
+var dotG6 = dotG6.map(getStats);
+var dotoutG6 = dotG6.toBands();
+Export.image.toDrive({ image: dotoutG6.toInt32(),
+  description: 'Guil16_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW6 = daymet37.map(p_day);
+var dotW6 = dotW6.select(['inf_range','nic_range']);
+var dotW6 = dotW6.map(getStats);
+var dotoutW6 = dotW6.toBands();
+Export.image.toDrive({ image: dotoutW6.toInt32(),
+  description: 'Wake16_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2017
+var dotCa7 = daymet40.map(p_day);
+var dotCa7 = dotCa7.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa7 = dotCa7.map(getStats);
+var dotCa7 = dotCa7.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa7.toInt32(), 
+  description: 'camden17_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP7 = daymet41.map(p_day);
+var dotP7 = dotP7.select(['inf_range','nic_range']);
+var dotP7 = dotP7.map(getStats);
+var dotoutP7 = dotP7.toBands();
+Export.image.toDrive({ image: dotoutP7.toInt32(),
+  description: 'Pasq17_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR7 = daymet42.map(p_day);
+var dotR7 = dotR7.select(['inf_range','nic_range']);
+var dotR7 = dotR7.map(getStats);
+var dotoutR7 = dotR7.toBands();
+Export.image.toDrive({ image: dotoutR7.toInt32(),
+  description: 'Ruther17_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG7 = daymet43.map(p_day);
+var dotG7 = dotG7.select(['inf_range','nic_range']);
+var dotG7 = dotG7.map(getStats);
+var dotoutG7 = dotG7.toBands();
+Export.image.toDrive({ image: dotoutG7.toInt32(),
+  description: 'Guil17_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW7 = daymet44.map(p_day);
+var dotW7 = dotW7.select(['inf_range','nic_range']);
+var dotW7 = dotW7.map(getStats);
+var dotoutW7 = dotW7.toBands();
+Export.image.toDrive({ image: dotoutW7.toInt32(),
+  description: 'Wake17_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2018
+var dotCa8 = daymet47.map(p_day);
+var dotCa8 = dotCa8.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa8 = dotCa8.map(getStats);
+var dotCa8 = dotCa8.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa8.toInt32(), 
+  description: 'camden18_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP8 = daymet48.map(p_day);
+var dotP8 = dotP8.select(['inf_range','nic_range']);
+var dotP8 = dotP8.map(getStats);
+var dotoutP8 = dotP8.toBands();
+Export.image.toDrive({ image: dotoutP8.toInt32(),
+  description: 'Pasq18_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR8 = daymet49.map(p_day);
+var dotR8 = dotR8.select(['inf_range','nic_range']);
+var dotR8 = dotR8.map(getStats);
+var dotoutR8 = dotR8.toBands();
+Export.image.toDrive({ image: dotoutR8.toInt32(),
+  description: 'Ruther18_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG8 = daymet50.map(p_day);
+var dotG8 = dotG8.select(['inf_range','nic_range']);
+var dotG8 = dotG8.map(getStats);
+var dotoutG8 = dotG8.toBands();
+Export.image.toDrive({ image: dotoutG8.toInt32(),
+  description: 'Guil18_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW8 = daymet51.map(p_day);
+var dotW8 = dotW8.select(['inf_range','nic_range']);
+var dotW8 = dotW8.map(getStats);
+var dotoutW8 = dotW8.toBands();
+Export.image.toDrive({ image: dotoutW8.toInt32(),
+  description: 'Wake18_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+// //2019
+var dotCa9 = daymet54.map(p_day);
+var dotCa9 = dotCa9.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa9 = dotCa9.map(getStats);
+var dotCa9 = dotCa9.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa9.toInt32(), 
+  description: 'camden19_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP9 = daymet55.map(p_day);
+var dotP9 = dotP9.select(['inf_range','nic_range']);
+var dotP9 = dotP9.map(getStats);
+var dotoutP9 = dotP9.toBands();
+Export.image.toDrive({ image: dotoutP9.toInt32(),
+  description: 'Pasq19_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR9 = daymet56.map(p_day);
+var dotR9 = dotR9.select(['inf_range','nic_range']);
+var dotR9 = dotR9.map(getStats);
+var dotoutR9 = dotR9.toBands();
+Export.image.toDrive({ image: dotoutR9.toInt32(),
+  description: 'Ruther19_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG9 = daymet57.map(p_day);
+var dotG9 = dotG9.select(['inf_range','nic_range']);
+var dotG9 = dotG9.map(getStats);
+var dotoutG9 = dotG9.toBands();
+Export.image.toDrive({ image: dotoutG9.toInt32(),
+  description: 'Guil19_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW9 = daymet58.map(p_day);
+var dotW9 = dotW9.select(['inf_range','nic_range']);
+var dotW9 = dotW9.map(getStats);
+var dotoutW9 = dotW9.toBands();
+Export.image.toDrive({ image: dotoutW9.toInt32(),
+  description: 'Wake19_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2020
+var dotCa20 = daymet61.map(p_day);
+var dotCa20 = dotCa20.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa20 = dotCa20.map(getStats);
+var dotCa20 = dotCa20.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa20.toInt32(), 
+  description: 'camden20_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP20 = daymet62.map(p_day);
+var dotP20 = dotP20.select(['inf_range','nic_range']);
+var dotP20 = dotP20.map(getStats);
+var dotoutP20 = dotP20.toBands();
+Export.image.toDrive({ image: dotoutP20.toInt32(),
+  description: 'Pasq20_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR20 = daymet63.map(p_day);
+var dotR20 = dotR20.select(['inf_range','nic_range']);
+var dotR20 = dotR20.map(getStats);
+var dotoutR20 = dotR20.toBands();
+Export.image.toDrive({ image: dotoutR20.toInt32(),
+  description: 'Ruther20_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG20 = daymet64.map(p_day);
+var dotG20 = dotG20.select(['inf_range','nic_range']);
+var dotG20 = dotG20.map(getStats);
+var dotoutG20 = dotG20.toBands();
+Export.image.toDrive({ image: dotoutG20.toInt32(),
+  description: 'Guil20_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW20 = daymet65.map(p_day);
+var dotW20 = dotW20.select(['inf_range','nic_range']);
+var dotW20 = dotW20.map(getStats);
+var dotoutW20 = dotW20.toBands();
+Export.image.toDrive({ image: dotoutW20.toInt32(),
+  description: 'Wake20_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+
+// //2021
+var dotCa21 = daymet68.map(p_day);
+var dotCa21 = dotCa21.select(['inf_range','nic_range']);//select('over_T.*');
+var dotCa21 = dotCa21.map(getStats);
+var dotCa21 = dotCa21.toBands();
+print('884 dotc', dotCa);
+Export.image.toDrive({ image: dotCa21.toInt32(), 
+  description: 'camden21_tmax_daycounts', 
+  folder: 'daymet_txn_hourly', 
+  region: loc1, 
+  scale: 30, 
+  maxPixels: 1e13 
+}); 
+
+var dotP21 = daymet69.map(p_day);
+var dotP21 = dotP21.select(['inf_range','nic_range']);
+var dotP21 = dotP21.map(getStats);
+var dotoutP21 = dotP21.toBands();
+Export.image.toDrive({ image: dotoutP21.toInt32(),
+  description: 'Pasq21_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+var dotR21 = daymet70.map(p_day);
+var dotR21 = dotR21.select(['inf_range','nic_range']);
+var dotR21 = dotR21.map(getStats);
+var dotoutR21 = dotR21.toBands();
+Export.image.toDrive({ image: dotoutR21.toInt32(),
+  description: 'Ruther21_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc3,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotG21 = daymet71.map(p_day);
+var dotG21 = dotG21.select(['inf_range','nic_range']);
+var dotG21 = dotG21.map(getStats);
+var dotoutG21 = dotG21.toBands();
+Export.image.toDrive({ image: dotoutG21.toInt32(),
+  description: 'Guil21_tmax_daycounts',
+  folder: 'daymet_txn_hourly', 
+  region: loc4,
+  scale: 30,
+  maxPixels: 1e13,
+});
+
+var dotW21 = daymet72.map(p_day);
+var dotW21 = dotW21.select(['inf_range','nic_range']);
+var dotW21 = dotW21.map(getStats);
+var dotoutW21 = dotW21.toBands();
+Export.image.toDrive({ image: dotoutW21.toInt32(),
+  description: 'Wake21_tmax_daycounts',
+  folder:'daymet_txn_hourly', 
+  region: loc5,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+////////////////////
